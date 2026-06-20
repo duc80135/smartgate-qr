@@ -172,7 +172,7 @@ function handleDataUpdate(key) {
 }
 
 // ==================== DEFAULT DATA ====================
-const DATA_VERSION = '2';
+const DATA_VERSION = '3';
 
 function initDefaultData() {
   // Check data version - if outdated, reset all data
@@ -1326,6 +1326,8 @@ function setupResidentQRForm() {
   if (currentUser && currentUser.apartmentId) {
     apartmentField.value = `${currentUser.apartmentId} - Tòa ${currentUser.building} - Tầng ${currentUser.floor}`;
   }
+  // Always show form and hide result when navigating to this view
+  document.getElementById('create-qr-form').classList.remove('hidden');
   document.getElementById('qr-result').classList.add('hidden');
 }
 
