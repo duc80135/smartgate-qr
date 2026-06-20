@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Hệ thống quản lý và kiểm soát ra vào bằng mã QR Code cho chung cư">
+  <title>SmartGate - Quản lý Ra vào Chung cư</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ==================== TOAST NOTIFICATION ==================== -->
+  <div id="toast-container"></div>
+
+  <!-- ==================== MODAL OVERLAY ==================== -->
+  <div id="modal-overlay" class="modal-overlay hidden">
+    <div id="modal-box" class="modal-box">
+      <div id="modal-header" class="modal-header">
+        <h3 id="modal-title"></h3>
+        <button id="modal-close" class="modal-close-btn" onclick="closeModal()">
+          <span class="material-icons-round">close</span>
+        </button>
+      </div>
+      <div id="modal-body" class="modal-body"></div>
+      <div id="modal-footer" class="modal-footer"></div>
+    </div>
+  </div>
+
+  <!-- ==================== LOGIN PAGE ==================== -->
+  <div id="login-page" class="login-page">
+    <div class="login-bg-pattern"></div>
+    <div class="login-container">
+      <div class="login-logo">
+        <div class="logo-icon">
+          <span class="material-icons-round">apartment</span>
+        </div>
+        <h1>SmartGate</h1>
+        <p class="login-subtitle">Hệ thống Quản lý Ra vào Chung cư</p>
+      </div>
+      <form id="login-form" class="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label for="login-username">
+            <span class="material-icons-round">person</span>
+            Tên đăng nhập
+          </label>
+          <input type="text" id="login-username" placeholder="Nhập tên đăng nhập" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="login-password">
+            <span class="material-icons-round">lock</span>
+            Mật khẩu
+          </label>
+          <div class="password-input-wrap">
+            <input type="password" id="login-password" placeholder="Nhập mật khẩu" required autocomplete="current-password">
+            <button type="button" class="toggle-password" onclick="togglePasswordVisibility(this)">
+              <span class="material-icons-round">visibility_off</span>
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-login" id="login-btn">
+          <span class="material-icons-round">login</span>
+          Đăng nhập
+        </button>
+        <div id="login-error" class="login-error hidden"></div>
+      </form>
+      <div class="login-mode-indicator" id="login-mode-indicator">
+        <span class="material-icons-round">wifi_off</span>
+        <span>Chế độ Local Demo</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== APP SHELL ==================== -->
+  <div id="app-shell" class="app-shell hidden">
+
+    <!-- TOP HEADER -->
+    <header class="app-header" id="app-header">
+      <div class="header-left">
+        <button class="btn-icon sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()">
+          <span class="material-icons-round">menu</span>
+        </button>
+        <div class="header-brand">
+          <span class="material-icons-round">apartment</span>
+          <span class="brand-text">SmartGate</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="header-user-info" id="header-user-info">
+          <span class="user-role-badge" id="header-role-badge"></span>
+          <span class="user-name" id="header-user-name"></span>
+        </div>
+        <button class="btn-icon" onclick="handleLogout()" title="Đăng xuất">
+          <span class="material-icons-round">logout</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- SIDEBAR NAV (Desktop) -->
+    <nav class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-user-card" id="sidebar-user-card">
+          <div class="user-avatar" id="sidebar-avatar">
+            <span class="material-icons-round">account_circle</span>
+          </div>
+          <div class="user-details">
+            <div class="user-name" id="sidebar-user-name"></div>
+            <div class="user-role" id="sidebar-user-role"></div>
+          </div>
+        </div>
+      </div>
+      <ul class="sidebar-menu" id="sidebar-menu">
+        <!-- Dynamic menu items -->
+      </ul>
+      <div class="sidebar-footer">
+        <div class="mode-badge" id="sidebar-mode-badge">
+          <span class="material-icons-round">wifi_off</span>
+          <span>Local Demo</span>
+        </div>
+      </div>
+    </nav>
+
+    <!-- SIDEBAR OVERLAY (Mobile) -->
+    <div class="sidebar-overlay hidden" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- BOTTOM NAV (Mobile) -->
+    <nav class="bottom-nav" id="bottom-nav">
+      <!-- Dynamic nav items -->
+    </nav>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content" id="main-content">
+
+      <!-- ========== ADMIN VIEWS ========== -->
+
+      <!-- ADMIN DASHBOARD -->
+      <section id="view-admin-dashboard" class="view hidden">
+        <div class="view-header">
+          <h2><span class="material-icons-round">dashboard</span> Dashboard Tổng quan</h2>
+        </div>
+        <div class="stats-grid" id="admin-stats-grid">
+          <!-- Dynamic stats cards -->
+        </div>
+        <div class="section-card">
+          <div class="section-card-header">
+            <h3><span class="material-icons-round">history</span> Nhật ký Ra/Vào gần đây</h3>
+            <button class="btn btn-sm btn-outline" onclick="navigateTo('admin-logs')">Xem tất cả</button>
+          </div>
+          <div class="table-responsive" id="admin-recent-logs">
+            <!-- Dynamic table -->
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="section-card-header">
+            <h3><span class="material-icons-round">pending_actions</span> Yêu cầu xác nhận đang chờ</h3>
+            <button class="btn btn-sm btn-outline" onclick="navigateTo('admin-confirmations')">Xem tất cả</button>
+          </div>
+          <div id="admin-pending-requests">
+            <!-- Dynamic list -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ADMIN ACCOUNT MANAGEMENT -->
+      <section id="view-admin-accounts" class="view hidden">
+        <div class="view-header">
+          <h2><span class="material-icons-round">manage_accounts</span> Quản lý Tài khoản</h2>
+          <button class="btn btn-primary" onclick="showAccountForm()">
+            <span class="material-icons-round">person_add</span> Tạo tài khoản
+          </button>
+        </div>
+        <div class="filter-bar">
+          <select id="filter-account-role" onchange="renderAccountList()">
+            <option value="">Tất cả vai trò</option>
+            <option value="admin">Ban quản lý</option>
+            <option value="resident">Chủ nhà</option>
+            <option value="guard">Bảo vệ</option>
+          </select>
+          <select id="filter-account-status" onchange="renderAccountList()">
+            <option value="">Tất cả trạng thái</option>
+            <option value="active">Đang hoạt động</option>
+            <option value="locked">Đã khóa</option>
+          </select>
+          <input type="text" id="search-account" placeholder="Tìm kiếm..." oninput="renderAccountList()">
+        </div>
+        <div id="account-list" class="card-list">
+          <!-- Dynamic list -->
+        </div>
+      </section>
+
+      <!-- ADMIN ACCOUNT FORM -->
+      <section id="view-admin-account-form" class="view hidden">
+        <div class="view-header">
+          <button class="btn btn-ghost" onclick="navigateTo('admin-accounts')">
+            <span class="material-icons-round">arrow_back</span> Quay lại
+          </button>
+          <h2 id="account-form-title">Tạo tài khoản mới</h2>
+        </div>
+        <form id="account-form" class="form-card" onsubmit="handleSaveAccount(event)">
+          <input type="hidden" id="account-edit-id">
+          <div class="form-group">
+            <label for="acc-fullname">Họ tên <span class="required">*</span></label>
+            <input type="text" id="acc-fullname" required placeholder="Nhập họ tên">
+          </div>
+          <div class="form-group">
+            <label for="acc-username">Tên đăng nhập <span class="required">*</span></label>
+            <input type="text" id="acc-username" required placeholder="Nhập tên đăng nhập">
+          </div>
+          <div class="form-group">
+            <label for="acc-password">Mật khẩu <span class="required">*</span></label>
+            <input type="password" id="acc-password" required placeholder="Nhập mật khẩu">
+          </div>
+          <div class="form-group">
+            <label for="acc-phone">Số điện thoại <span class="required">*</span></label>
+            <input type="tel" id="acc-phone" required placeholder="Nhập số điện thoại">
+          </div>
+          <div class="form-group">
+            <label for="acc-role">Vai trò <span class="required">*</span></label>
+            <select id="acc-role" required onchange="toggleRoleFields()">
+              <option value="">-- Chọn vai trò --</option>
+              <option value="resident">Chủ nhà</option>
+              <option value="guard">Bảo vệ</option>
+              <option value="admin">Ban quản lý</option>
+            </select>
+          </div>
+
+          <!-- Resident fields -->
+          <div id="resident-fields" class="role-fields hidden">
+            <div class="form-divider">Thông tin căn hộ</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="acc-apartment">Mã căn hộ <span class="required">*</span></label>
+                <input type="text" id="acc-apartment" placeholder="VD: A-1205">
+              </div>
+              <div class="form-group">
+                <label for="acc-building">Tòa nhà <span class="required">*</span></label>
+                <input type="text" id="acc-building" placeholder="VD: A">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="acc-floor">Tầng <span class="required">*</span></label>
+              <input type="text" id="acc-floor" placeholder="VD: 12">
+            </div>
+          </div>
+
+          <!-- Guard fields -->
+          <div id="guard-fields" class="role-fields hidden">
+            <div class="form-divider">Thông tin trực</div>
+            <div class="form-group">
+              <label for="acc-area">Khu vực trực <span class="required">*</span></label>
+              <select id="acc-area">
+                <option value="">-- Chọn khu vực --</option>
+                <option value="Cổng chính">Cổng chính</option>
+                <option value="Cổng phụ">Cổng phụ</option>
+                <option value="Hầm B1">Hầm B1</option>
+                <option value="Hầm B2">Hầm B2</option>
+                <option value="Sảnh A">Sảnh A</option>
+                <option value="Sảnh B">Sảnh B</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="acc-shift">Ca trực <span class="required">*</span></label>
+              <select id="acc-shift">
+                <option value="">-- Chọn ca --</option>
+                <option value="Ca ngày (6h-14h)">Ca ngày (6h-14h)</option>
+                <option value="Ca chiều (14h-22h)">Ca chiều (14h-22h)</option>
+                <option value="Ca đêm (22h-6h)">Ca đêm (22h-6h)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="acc-status">Trạng thái</label>
+            <select id="acc-status">
+              <option value="active">Đang hoạt động</option>
+              <option value="locked">Khóa</option>
+            </select>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" onclick="navigateTo('admin-accounts')">Hủy</button>
+            <button type="submit" class="btn btn-primary" id="account-form-submit-btn">
+              <span class="material-icons-round">save</span> Lưu tài khoản
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ADMIN RESIDENT LIST -->
+      <section id="view-admin-residents" class="view hidden">
+        <div class="view-header">
+          <h2><span class="material-icons-round">people</span> Danh sách Cư dân</h2>
+        </div>
+        <div class="filter-bar">
+          <input type="text" id="search-resident" placeholder="Tìm kiếm cư dân..." oninput="renderResidentList()">
+        </div>
+        <div id="resident-list" class="card-list">
+          <!-- Dynamic -->
+        </div>
+      </section>
+
+      <!-- ADMIN GUARD LIST -->
+      <section id="view-admin-guards" class="view hidden">
+        <div class="view-header">
+          <h2><span class="material-icons-round">security</span> Danh sách Bảo vệ</h2>
+        </div>
+        <div id="guard-list" class="card-list">
+          <!-- Dynamic -->
+        </div>
+      </section>
+
+      <!-- ADMIN QR LIST -->
+      <section id="view-admin-qrlist" class="view hidden">
+        <div class="view-header">
+          <h2><span class="material-icons-round">qr_code_2</span> Danh sách QR</h2>
+        </div>
+        <div class="filter-bar">
+          <select id="filter-qr-status" onchange="renderAdminQRList()">
+            <option value="">Tất cả trạng thái</option>
+            <option value="active">Còn hiệu lực</option>
+            <option value="used">Đã sử dụng</option>
+            <option value="expired">Hết hạn</option>
+            <option value="cancelled">Đã hủy</option>
+          </select>
+          <input type="text" id="search-qr" placeholder="Tìm kiếm..." oninput="renderAdminQRList()">
+        </div>
+        <div id="admin-qr-list" class="card-list">
+          <!-- Dynamic -->
+        </div>
+      </section>
+
+      <!-- ADMIN CONFIRMATIONS -->
+      <section id="view-admin-confirmations" class="view hidden">
+        <div class="view-header">
+          <h2><span class="material-icons-round">fact_check</span> Yêu cầu Xác nhận</h2>
+        </div>
+        <div class="filter-bar">
+          <select id="filter-confirm-status" onchange="renderAdminConfirmations()">
+            <option value="">Tất cả</option>
+            <option value="pending">Đang chờ</option>
+            <option value="approved">Đã đồng ý</option>
+            <option value="rejected">Đã từ chối</option>
+          </select>
+        </div>
+        <div id="admin-confirm-list" class="card-list">
+          <!-- Dynamic -->
+        </div>
+      </section>
+
+      <!-- ADMIN LOGS -->
+      <section id="view-admin-logs" class="view hidden">
+        <div class="view-header">
+          <h2><span class="material-icons-round">history</span> Nhật ký Ra/Vào</h2>
+        </div>
+        <div class="filter-bar">
+          <input type="date" id="filter-log-date" onchange="renderAdminLogs()">
+          <input type="text" id="search-log" placeholder="Tìm kiếm..." oninput="renderAdminLogs()">
+        </div>
+        <div id="admin-log-list" class="card-list">
+          <!-- Dynamic -->
+        </div>
+      </section>
+
+      <!-- ADMIN INCIDENTS -->
+      <section id="view-admin-incidents" class="view hidden">
+        <div class="view-header">
+          <h2><span class="material-icons-round">report_problem</span> Phản ánh Sự cố</h2>
+        </div>
+        <div class="filter-bar">
+          <select id="filter-incident-status" onchange="renderAdminIncidents()">
+            <option value="">Tất cả</option>
+            <option value="new">Mới tiếp nhận</option>
+            <option value="processing">Đang xử lý</option>
+            <option value="resolved">Đã xử lý</option>
+          </select>
+          <select id="filter-incident-category" onchange="renderAdminIncidents()">
+            <option value="">Tất cả danh mục</option>
+            <option value="security">An ninh</option>
+            <option value="hygiene">Vệ sinh</option>
+            <option value="technical">Kỹ thuật</option>
+            <option value="elevator">Thang máy</option>
+            <option value="other">Khác</option>
+          </select>
+        </div>
+        <div id="admin-incident-list" class="card-list">
+          <!-- Dynamic -->
+        </div>
+      </section>
+
+      <!-- ========== RESIDENT VIEWS ========== -->
+
+      <!-- RESIDENT INFO -->
+      <section id="view-resident-info" class="view hidden">
+        <div class="view-header">
+          <h2><span class="material-icons-round">person</span> Thông tin Tài khoản</h2>
+        </div>
+        <div class="profile-card" id="resident-profile-card">
+          <!-- Dynamic -->
+        </div>
+      </section>
+
+      <!-- RESIDENT CREATE QR -->
+      <section id="view-resident-create-qr" class="view hidden">
+        <div class="view-header">
+          <h2><span class="material-icons-round">qr_code</span> Tạo mã QR</h2>
+        </div>
+        <form id="create-qr-form" class="form-card" onsubmit="handleCreateQR(event)">
+          <div class="form-group">
+            <label for="qr-visitor-name">Tên người đến <span class="required">*</span></label>
+            <input type="text" id="qr-visitor-name" required placeholder="Nhập tên người đến">
+          </div>
+          <div class="form-group">
+            <label for="qr-visitor-type">Loại đối tượng <span class="required">*</span></label>
+            <select id="qr-visitor-type" required>
+              <option value="">-- Chọn loại --</option>
+              <option value="Shipper">Shipper</option>
+              <option value="Khách">Khách</option>
+              <option value="Đội kỹ thuật">Đội kỹ thuật</option>
+              <option value="Người thân">Người thân</option>
+              <option value="Khác">Khác</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="qr-visitor-phone">Số điện thoại</label>
+            <input type="tel" id="qr-visitor-phone" placeholder="Nhập số điện thoại">
+          </div>
+          <div class="form-group">
+            <label for="qr-apartment-display">Căn hộ</label>
+            <input type="text" id="qr-apartment-display" readonly>
+          </div>
+          <div class="form-group">
+            <label for="qr-vehicle">Biển số xe / Mã đơn hàng</label>
+            <input type="text" id="qr-vehicle" placeholder="Nhập biển số xe hoặc mã đơn hàng">
+          </div>
+          <div class="form-group">
+            <label for="qr-expires">Thời hạn hiệu lực <span class="required">*</span></label>
+            <select id="qr-expires" required>
+              <option value="30">30 phút</option>
+              <option value="60" selected>1 giờ</option>
+              <option value="120">2 giờ</option>
+              <option value="240">4 giờ</option>
+              <option value="480">8 giờ</option>
+              <option value="1440">24 giờ</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="qr-note">Ghi chú cho bảo vệ</label>
+            <textarea id="qr-note" rows="3" placeholder="Ghi chú thêm (nếu có)"></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary btn-block">
+              <span class="material-icons-round">qr_code_2</span> Tạo mã QR
+            </button>
+          </div>
+        </form>
+
+        <!-- QR RESULT -->
+        <div id="qr-result" class="qr-result-card hidden">
+          <div class="qr-result-header">
+            <span class="material-icons-round success-icon">check_circle</span>
+            <h3>Tạo mã QR thành công!</h3>
+          </div>
+          <div id="qr-code-display" class="qr-code-display"></div>
+          <div class="qr-info-summary" id="qr-info-summary"></div>
+          <div class="qr-token-box">
+            <label>Token:</label>
+            <div class="token-copy-row">
+              <code id="qr-token-display"></code>
+              <button class="btn btn-sm btn-outline" onclick="copyToken()">
+                <span class="material-icons-round">content_copy</span> Sao chép
+              </button>
+            </div>
+          </div>
+          <button class="btn btn-outline btn-block" onclick="resetQRForm()">
+            <span class="material-icons-round">add</span> Tạo mã QR mới
+          </button>
+        </div>
+      </section>
+
+      <!-- RESIDENT QR LIST -->
+      <section id="view-resident-qrlist" class="view hidden">
+        <div class="view-header">
+          <h2><span class="material-icons-round">qr_code_2</span> QR đã tạo</h2>
+        </div>
+        <div id="resident-qr-list" class="card-list">
+          <!-- Dynamic -->
+        </div>
+      </section>
+
+      <!-- RESIDENT CONFIRMATIONS -->
+      <section id="view-resident-confirmations" class="view hidden">
+        <div class="view-header">
+          <h2><span class="material-icons-round">notifications_active</span> Yêu cầu Xác nhận</h2>
+        </div>
+        <div id="resident-notification-badge" class="notification-banner hidden">
+          <span class="material-icons-round">priority_high</span>
+          <span>Có yêu cầu mới cần xác nhận!</span>
+        </div>
+        <div id="resident-confirm-list" class="card-list">
+          <!-- Dynamic -->
+        </div>
+      </section>
+
+      <!-- RESIDENT INCIDENTS -->
+      <section id="view-resident-incidents" class="view hidden">
+        <div class="view-header">
+          <h2><span class="material-icons-round">report_problem</span> Phản ánh Sự cố</h2>
+          <button class="btn btn-primary" onclick="showIncidentForm()">
+            <span class="material-icons-round">add</span> Gửi phản ánh
+          </button>
+        </div>
+        <div id="incident-form-container" class="hidden">
+          <form id="incident-form" class="form-card" onsubmit="handleSubmitIncident(event)">
+            <div class="form-group">
+              <label for="inc-title">Tiêu đề <span class="required">*</span></label>
+              <input type="text" id="inc-title" required placeholder="Nhập tiêu đề sự cố">
+            </div>
+            <div class="form-group">
+              <label for="inc-category">Danh mục <span class="required">*</span></label>
+              <select id="inc-category" required>
+                <option value="">-- Chọn danh mục --</option>
+                <option value="security">An ninh</option>
+                <option value="hygiene">Vệ sinh</option>
+                <option value="technical">Kỹ thuật</option>
+                <option value="elevator">Thang máy</option>
+                <option value="other">Khác</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="inc-content">Nội dung chi tiết <span class="required">*</span></label>
+              <textarea id="inc-content" rows="4" required placeholder="Mô tả chi tiết sự cố"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="inc-severity">Mức độ <span class="required">*</span></label>
+              <select id="inc-severity" required>
+                <option value="low">Thấp</option>
+                <option value="medium" selected>Trung bình</option>
+                <option value="high">Cao</option>
+              </select>
+            </div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-ghost" onclick="hideIncidentForm()">Hủy</button>
+              <button type="submit" class="btn btn-primary">
+                <span class="material-icons-round">send</span> Gửi phản ánh
+              </button>
+            </div>
+          </form>
+        </div>
+        <div id="resident-incident-list" class="card-list">
+          <!-- Dynamic -->
+        </div>
+      </section>
+
+      <!-- RESIDENT HISTORY -->
+      <section id="view-resident-history" class="view hidden">
+        <div class="view-header">
+          <h2><span class="material-icons-round">history</span> Lịch sử Ra/Vào</h2>
+        </div>
+        <div id="resident-history-list" class="card-list">
+          <!-- Dynamic -->
+        </div>
+      </section>
+
+      <!-- ========== GUARD VIEWS ========== -->
+
+      <!-- GUARD SCANNER -->
+      <section id="view-guard-scanner" class="view hidden">
+        <div class="view-header">
+          <h2><span class="material-icons-round">qr_code_scanner</span> Quét mã QR</h2>
+        </div>
+
+        <!-- Camera Scanner -->
+        <div class="scanner-card">
+          <div class="scanner-controls">
+            <button class="btn btn-primary" id="btn-start-camera" onclick="startCamera()">
+              <span class="material-icons-round">videocam</span> Bật Camera
+            </button>
+            <button class="btn btn-danger hidden" id="btn-stop-camera" onclick="stopCamera()">
+              <span class="material-icons-round">videocam_off</span> Tắt Camera
+            </button>
+          </div>
+          <div id="camera-container" class="camera-container hidden">
+            <video id="camera-video" autoplay playsinline></video>
+            <canvas id="camera-canvas" class="hidden"></canvas>
+            <div class="scanner-overlay">
+              <div class="scanner-frame"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manual Token Input -->
+        <div class="section-card">
+          <div class="section-card-header">
+            <h3><span class="material-icons-round">keyboard</span> Nhập Token thủ công</h3>
+          </div>
+          <div class="manual-token-input">
+            <input type="text" id="manual-token-input" placeholder="Dán token QR vào đây...">
+            <button class="btn btn-primary" onclick="handleManualToken()">
+              <span class="material-icons-round">search</span> Kiểm tra
+            </button>
+          </div>
+        </div>
+
+        <!-- Scan Result -->
+        <div id="scan-result" class="scan-result-card hidden">
+          <!-- Dynamic scan result -->
+        </div>
+      </section>
+
+      <!-- GUARD LOGS -->
+      <section id="view-guard-logs" class="view hidden">
+        <div class="view-header">
+          <h2><span class="material-icons-round">history</span> Nhật ký Ca trực</h2>
+        </div>
+        <div id="guard-log-list" class="card-list">
+          <!-- Dynamic -->
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
