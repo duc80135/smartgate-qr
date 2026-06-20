@@ -175,16 +175,125 @@ function handleDataUpdate(key) {
 function initDefaultData() {
   const users = getData(KEYS.USERS);
   if (!users || users.length === 0) {
-    setData(KEYS.USERS, [{
-      id: generateId(),
-      fullName: 'Quản trị viên',
-      username: 'admin',
-      password: 'admin123',
-      role: 'admin',
-      phone: '0900000000',
-      status: 'active',
-      createdAt: new Date().toISOString()
-    }]);
+    setData(KEYS.USERS, [
+      // Ban quản lý
+      {
+        id: generateId(),
+        fullName: 'Quản trị viên',
+        username: 'admin',
+        password: 'admin123',
+        role: 'admin',
+        phone: '0900000000',
+        status: 'active',
+        createdAt: new Date().toISOString()
+      },
+      // Bảo vệ
+      {
+        id: generateId(),
+        fullName: 'Nguyễn Văn Nam',
+        username: 'admin2',
+        password: 'admin123',
+        role: 'guard',
+        phone: '0912345678',
+        area: 'Cổng chính',
+        shift: 'Ca ngày (6h-14h)',
+        status: 'active',
+        createdAt: new Date().toISOString()
+      },
+      // Cư dân - Tòa A
+      {
+        id: generateId(),
+        fullName: 'Nguyễn Văn An',
+        username: 'a501',
+        password: '123456',
+        role: 'resident',
+        phone: '0901000501',
+        apartmentId: 'A-501',
+        building: 'A',
+        floor: '5',
+        status: 'active',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: generateId(),
+        fullName: 'Trần Thị Bích',
+        username: 'a802',
+        password: '123456',
+        role: 'resident',
+        phone: '0901000802',
+        apartmentId: 'A-802',
+        building: 'A',
+        floor: '8',
+        status: 'active',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: generateId(),
+        fullName: 'Trần Minh Khoa',
+        username: 'a1205',
+        password: '123456',
+        role: 'resident',
+        phone: '0901001205',
+        apartmentId: 'A-1205',
+        building: 'A',
+        floor: '12',
+        status: 'active',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: generateId(),
+        fullName: 'Lê Hoàng Dũng',
+        username: 'a1503',
+        password: '123456',
+        role: 'resident',
+        phone: '0901001503',
+        apartmentId: 'A-1503',
+        building: 'A',
+        floor: '15',
+        status: 'active',
+        createdAt: new Date().toISOString()
+      },
+      // Cư dân - Tòa B
+      {
+        id: generateId(),
+        fullName: 'Phạm Thị Lan',
+        username: 'b301',
+        password: '123456',
+        role: 'resident',
+        phone: '0902000301',
+        apartmentId: 'B-301',
+        building: 'B',
+        floor: '3',
+        status: 'active',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: generateId(),
+        fullName: 'Võ Minh Tuấn',
+        username: 'b607',
+        password: '123456',
+        role: 'resident',
+        phone: '0902000607',
+        apartmentId: 'B-607',
+        building: 'B',
+        floor: '6',
+        status: 'active',
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: generateId(),
+        fullName: 'Đặng Thùy Trang',
+        username: 'b1001',
+        password: '123456',
+        role: 'resident',
+        phone: '0902001001',
+        apartmentId: 'B-1001',
+        building: 'B',
+        floor: '10',
+        status: 'active',
+        createdAt: new Date().toISOString()
+      }
+    ]);
   }
 
   // Initialize empty arrays if not exist
