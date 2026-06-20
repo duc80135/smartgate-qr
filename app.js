@@ -855,12 +855,14 @@ function renderAccountList() {
     return;
   }
 
-  container.innerHTML = filtered.map(u => `
+  container.innerHTML = filtered.map(u => {
+    const isSystem = u.role === 'admin' || u.role === 'guard';
+    return `
     <div class="list-card">
       <div class="list-card-header">
         <div>
           <div class="list-card-title">${u.fullName}</div>
-          <div class="list-card-subtitle">@${u.username}</div>
+          <div class="list-card-subtitle">@${u.username} ${isSystem ? '<span style="font-size:0.7rem; color:var(--primary-light);">(Tài khoản hệ thống)</span>' : ''}</div>
         </div>
         <div style="display: flex; gap: 6px; align-items: center;">
           <span class="user-role-badge role-${u.role}">${getRoleName(u.role)}</span>
@@ -872,25 +874,39 @@ function renderAccountList() {
         ${u.role === 'resident' ? `<div class="list-card-row"><span class="material-icons-round">apartment</span>Căn hộ: ${u.apartmentId || '—'} | Tòa ${u.building || '—'} | Tầng ${u.floor || '—'}</div>` : ''}
         ${u.role === 'guard' ? `<div class="list-card-row"><span class="material-icons-round">location_on</span>${u.area || '—'} | ${u.shift || '—'}</div>` : ''}
       </div>
+      ${isSystem ? '' : `
       <div class="list-card-actions">
         <button class="btn btn-sm btn-outline" onclick="editAccount('${u.id}')"><span class="material-icons-round">edit</span>Sửa</button>
         ${u.status === 'active'
           ? `<button class="btn btn-sm btn-warning" onclick="toggleAccountStatus('${u.id}', 'locked')"><span class="material-icons-round">lock</span>Khóa</button>`
           : `<button class="btn btn-sm btn-success" onclick="toggleAccountStatus('${u.id}', 'active')"><span class="material-icons-round">lock_open</span>Mở khóa</button>`}
-        ${u.username !== 'admin' ? `<button class="btn btn-sm btn-danger" onclick="deleteAccount('${u.id}')"><span class="material-icons-round">delete</span>Xóa</button>` : ''}
+        <button class="btn btn-sm btn-danger" onclick="deleteAccount('${u.id}')"><span class="material-icons-round">delete</span>Xóa</button>
       </div>
+      `}
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function showAccountForm(userId = null) {
+  // Only allow editing resident accounts
+  if (userId) {
+    const users = getData(KEYS.USERS);
+    const user = users.find(u => u.id === userId);
+    if (user && (user.role === 'admin' || user.role === 'guard')) {
+      showToast('Không thể chỉnh sửa tài khoản hệ thống (Ban quản lý / Bảo vệ)', 'error');
+      return;
+    }
+  }
+
   navigateTo('admin-account-form');
   const form = document.getElementById('account-form');
   form.reset();
   document.getElementById('account-edit-id').value = '';
-  document.getElementById('account-form-title').textContent = 'Tạo tài khoản mới';
+  document.getElementById('account-form-title').textContent = 'Tạo tài khoản cư dân mới';
   document.getElementById('account-form-submit-btn').innerHTML = '<span class="material-icons-round">save</span> Lưu tài khoản';
   document.getElementById('acc-username').removeAttribute('readonly');
+  document.getElementById('acc-role').value = 'resident';
   toggleRoleFields();
 
   if (userId) {
@@ -898,24 +914,18 @@ function showAccountForm(userId = null) {
     const user = users.find(u => u.id === userId);
     if (user) {
       document.getElementById('account-edit-id').value = user.id;
-      document.getElementById('account-form-title').textContent = 'Chỉnh sửa tài khoản';
+      document.getElementById('account-form-title').textContent = 'Chỉnh sửa tài khoản cư dân';
       document.getElementById('acc-fullname').value = user.fullName;
       document.getElementById('acc-username').value = user.username;
       document.getElementById('acc-username').setAttribute('readonly', true);
       document.getElementById('acc-password').value = user.password;
       document.getElementById('acc-phone').value = user.phone || '';
-      document.getElementById('acc-role').value = user.role;
+      document.getElementById('acc-role').value = 'resident';
       document.getElementById('acc-status').value = user.status;
       toggleRoleFields();
-      if (user.role === 'resident') {
-        document.getElementById('acc-apartment').value = user.apartmentId || '';
-        document.getElementById('acc-building').value = user.building || '';
-        document.getElementById('acc-floor').value = user.floor || '';
-      }
-      if (user.role === 'guard') {
-        document.getElementById('acc-area').value = user.area || '';
-        document.getElementById('acc-shift').value = user.shift || '';
-      }
+      document.getElementById('acc-apartment').value = user.apartmentId || '';
+      document.getElementById('acc-building').value = user.building || '';
+      document.getElementById('acc-floor').value = user.floor || '';
     }
   }
 }
@@ -1018,8 +1028,8 @@ function deleteAccount(userId) {
   const users = getData(KEYS.USERS);
   const user = users.find(u => u.id === userId);
   if (!user) return;
-  if (user.username === 'admin') {
-    showToast('Không thể xóa tài khoản admin mặc định', 'error');
+  if (user.role === 'admin' || user.role === 'guard') {
+    showToast('Không thể xóa tài khoản hệ thống (Ban quản lý / Bảo vệ)', 'error');
     return;
   }
 

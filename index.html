@@ -169,7 +169,7 @@
         <div class="view-header">
           <h2><span class="material-icons-round">manage_accounts</span> Quản lý Tài khoản</h2>
           <button class="btn btn-primary" onclick="showAccountForm()">
-            <span class="material-icons-round">person_add</span> Tạo tài khoản
+            <span class="material-icons-round">person_add</span> Tạo tài khoản cư dân
           </button>
         </div>
         <div class="filter-bar">
@@ -220,10 +220,7 @@
           <div class="form-group">
             <label for="acc-role">Vai trò <span class="required">*</span></label>
             <select id="acc-role" required onchange="toggleRoleFields()">
-              <option value="">-- Chọn vai trò --</option>
-              <option value="resident">Chủ nhà</option>
-              <option value="guard">Bảo vệ</option>
-              <option value="admin">Ban quản lý</option>
+              <option value="resident" selected>Chủ nhà</option>
             </select>
           </div>
 
