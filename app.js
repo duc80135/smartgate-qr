@@ -172,7 +172,17 @@ function handleDataUpdate(key) {
 }
 
 // ==================== DEFAULT DATA ====================
+const DATA_VERSION = '2';
+
 function initDefaultData() {
+  // Check data version - if outdated, reset all data
+  const savedVersion = localStorage.getItem('sg_version');
+  if (savedVersion !== DATA_VERSION) {
+    // Clear old data to load new default accounts
+    Object.values(KEYS).forEach(key => localStorage.removeItem(key));
+    localStorage.setItem('sg_version', DATA_VERSION);
+  }
+
   const users = getData(KEYS.USERS);
   if (!users || users.length === 0) {
     setData(KEYS.USERS, [
