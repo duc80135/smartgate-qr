@@ -169,7 +169,7 @@
         <div class="view-header">
           <h2><span class="material-icons-round">manage_accounts</span> Quản lý Tài khoản</h2>
           <button class="btn btn-primary" onclick="showAccountForm()">
-            <span class="material-icons-round">person_add</span> Tạo tài khoản cư dân
+            <span class="material-icons-round">person_add</span> Tạo tài khoản
           </button>
         </div>
         <div class="filter-bar">
@@ -221,6 +221,8 @@
             <label for="acc-role">Vai trò <span class="required">*</span></label>
             <select id="acc-role" required onchange="toggleRoleFields()">
               <option value="resident" selected>Chủ nhà</option>
+              <option value="guard">Bảo vệ</option>
+              <option value="admin">Ban quản lý</option>
             </select>
           </div>
 
@@ -623,7 +625,7 @@
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/jsqr@1.4.0/dist/jsQR.js"></script>
-  <script src="firebase-config.js?v=3"></script>
-  <script src="app.js?v=3"></script>
+  <script src="firebase-config.js?v=6-qr-capacity"></script>
+  <script src="app.js?v=6-qr-capacity"></script>
 </body>
 </html>

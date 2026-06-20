@@ -172,7 +172,7 @@ function handleDataUpdate(key) {
 }
 
 // ==================== DEFAULT DATA ====================
-const DATA_VERSION = '3';
+const DATA_VERSION = '4-smartgate-owner-qr';
 
 function initDefaultData() {
   // Check data version - if outdated, reset all data
@@ -304,6 +304,20 @@ function initDefaultData() {
         createdAt: new Date().toISOString()
       }
     ]);
+  }
+
+  // Version 4 starts with admin only. Residents and guards must be created by management.
+  if (savedVersion !== DATA_VERSION) {
+    setData(KEYS.USERS, [{
+      id: generateId(),
+      fullName: 'Quan tri vien',
+      username: 'admin',
+      password: 'admin123',
+      role: 'admin',
+      phone: '0900000000',
+      status: 'active',
+      createdAt: new Date().toISOString()
+    }]);
   }
 
   // Initialize empty arrays if not exist
@@ -663,6 +677,8 @@ function getStatusText(status) {
     used: 'Đã sử dụng',
     expired: 'Hết hạn',
     cancelled: 'Đã hủy',
+    waitingOwner: 'Chờ chủ nhà xác nhận',
+    ownerApproved: 'Chủ nhà đã đồng ý',
     pending: 'Đang chờ',
     approved: 'Đã đồng ý',
     rejected: 'Đã từ chối',
@@ -677,6 +693,8 @@ function getStatusClass(status) {
     used: 'status-used',
     expired: 'status-expired',
     cancelled: 'status-cancelled',
+    waitingOwner: 'status-pending',
+    ownerApproved: 'status-approved',
     pending: 'status-pending',
     approved: 'status-approved',
     rejected: 'status-rejected',
@@ -866,7 +884,7 @@ function renderAccountList() {
   }
 
   container.innerHTML = filtered.map(u => {
-    const isSystem = u.role === 'admin' || u.role === 'guard';
+    const isSystem = u.role === 'admin';
     return `
     <div class="list-card">
       <div class="list-card-header">
@@ -899,22 +917,13 @@ function renderAccountList() {
 }
 
 function showAccountForm(userId = null) {
-  // Only allow editing resident accounts
-  if (userId) {
-    const users = getData(KEYS.USERS);
-    const user = users.find(u => u.id === userId);
-    if (user && (user.role === 'admin' || user.role === 'guard')) {
-      showToast('Không thể chỉnh sửa tài khoản hệ thống (Ban quản lý / Bảo vệ)', 'error');
-      return;
-    }
-  }
 
   navigateTo('admin-account-form');
   const form = document.getElementById('account-form');
   form.reset();
   document.getElementById('account-edit-id').value = '';
-  document.getElementById('account-form-title').textContent = 'Tạo tài khoản cư dân mới';
-  document.getElementById('account-form-submit-btn').innerHTML = '<span class="material-icons-round">save</span> Lưu tài khoản';
+  document.getElementById('account-form-title').textContent = 'Tạo tài khoản mới';
+  document.getElementById('account-form-submit-btn').innerHTML = '<span class="material-icons-round">save</span> Luu tai khoan';
   document.getElementById('acc-username').removeAttribute('readonly');
   document.getElementById('acc-role').value = 'resident';
   toggleRoleFields();
@@ -924,18 +933,24 @@ function showAccountForm(userId = null) {
     const user = users.find(u => u.id === userId);
     if (user) {
       document.getElementById('account-edit-id').value = user.id;
-      document.getElementById('account-form-title').textContent = 'Chỉnh sửa tài khoản cư dân';
+      document.getElementById('account-form-title').textContent = 'Chinh sua tai khoan';
       document.getElementById('acc-fullname').value = user.fullName;
       document.getElementById('acc-username').value = user.username;
       document.getElementById('acc-username').setAttribute('readonly', true);
       document.getElementById('acc-password').value = user.password;
       document.getElementById('acc-phone').value = user.phone || '';
-      document.getElementById('acc-role').value = 'resident';
+      document.getElementById('acc-role').value = user.role;
       document.getElementById('acc-status').value = user.status;
       toggleRoleFields();
-      document.getElementById('acc-apartment').value = user.apartmentId || '';
-      document.getElementById('acc-building').value = user.building || '';
-      document.getElementById('acc-floor').value = user.floor || '';
+      if (user.role === 'resident') {
+        document.getElementById('acc-apartment').value = user.apartmentId || '';
+        document.getElementById('acc-building').value = user.building || '';
+        document.getElementById('acc-floor').value = user.floor || '';
+      }
+      if (user.role === 'guard') {
+        document.getElementById('acc-area').value = user.area || '';
+        document.getElementById('acc-shift').value = user.shift || '';
+      }
     }
   }
 }
@@ -1038,7 +1053,7 @@ function deleteAccount(userId) {
   const users = getData(KEYS.USERS);
   const user = users.find(u => u.id === userId);
   if (!user) return;
-  if (user.role === 'admin' || user.role === 'guard') {
+  if (user.role === 'admin') {
     showToast('Không thể xóa tài khoản hệ thống (Ban quản lý / Bảo vệ)', 'error');
     return;
   }
@@ -1351,6 +1366,8 @@ function handleCreateQR(event) {
   const expiresAt = new Date(now.getTime() + expiresMinutes * 60000).toISOString();
 
   const qrData = {
+    app: 'SmartGateQR',
+    type: 'entry-pass',
     token: token,
     apartmentId: currentUser.apartmentId,
     apartmentName: `${currentUser.apartmentId} - Tòa ${currentUser.building}`,
@@ -1375,12 +1392,13 @@ function handleCreateQR(event) {
   const qrDisplay = document.getElementById('qr-code-display');
   qrDisplay.innerHTML = '';
   new QRCode(qrDisplay, {
-    text: JSON.stringify(qrData),
+    text: JSON.stringify(compactQrPayload(qrData)),
+    typeNumber: 10,
     width: 200,
     height: 200,
     colorDark: '#0f172a',
     colorLight: '#ffffff',
-    correctLevel: QRCode.CorrectLevel.M
+    correctLevel: QRCode.CorrectLevel.L
   });
 
   // Show info summary
@@ -1483,12 +1501,13 @@ function viewQRCode(token) {
     const display = document.getElementById('modal-qr-display');
     if (display) {
       new QRCode(display, {
-        text: JSON.stringify(qr),
+        text: JSON.stringify(compactQrPayload(qr)),
+        typeNumber: 10,
         width: 180,
         height: 180,
         colorDark: '#0f172a',
         colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
+        correctLevel: QRCode.CorrectLevel.L
       });
     }
   }, 100);
@@ -1589,6 +1608,13 @@ function respondConfirmation(confirmId, response) {
   confirm.status = response;
   confirm.responseTime = new Date().toISOString();
   setData(KEYS.CONFIRMATIONS, confirms);
+
+  const qrs = getData(KEYS.QR_CODES);
+  const qr = qrs.find(q => q.token === confirm.qrToken);
+  if (qr && qr.status !== 'used') {
+    qr.status = response === 'approved' ? 'ownerApproved' : 'rejected';
+    setData(KEYS.QR_CODES, qrs);
+  }
 
   if (response === 'approved') {
     showToast('Đã xác nhận cho vào', 'success');
@@ -1821,6 +1847,58 @@ function handleManualToken() {
   }
 }
 
+function isSmartGatePayload(data) {
+  const normalized = normalizeQrPayload(data);
+  return Boolean(
+    normalized.token &&
+    normalized.apartmentId &&
+    normalized.residentUsername &&
+    normalized.residentName &&
+    normalized.visitorName &&
+    normalized.visitorType &&
+    normalized.expiresAt
+  );
+}
+
+function compactQrPayload(data) {
+  return {
+    a: 'SG',
+    y: 'entry',
+    t: data.token,
+    ap: data.apartmentId,
+    an: data.apartmentName || data.apartmentId,
+    rn: data.residentName,
+    ru: data.residentUsername,
+    vn: data.visitorName,
+    vt: data.visitorType,
+    ph: data.visitorPhone || '',
+    vc: data.vehicleOrOrderCode || '',
+    ex: data.expiresAt,
+    n: data.note || '',
+    ca: data.createdAt || new Date().toISOString()
+  };
+}
+
+function normalizeQrPayload(data) {
+  return {
+    app: data.app || data.a || 'SmartGateQR',
+    type: data.type || data.y || 'entry-pass',
+    token: data.token || data.t,
+    apartmentId: data.apartmentId || data.ap,
+    apartmentName: data.apartmentName || data.an || data.apartmentId || data.ap,
+    residentName: data.residentName || data.rn,
+    residentUsername: data.residentUsername || data.ru,
+    visitorName: data.visitorName || data.vn,
+    visitorType: data.visitorType || data.vt,
+    visitorPhone: data.visitorPhone || data.ph || '',
+    vehicleOrOrderCode: data.vehicleOrOrderCode || data.vc || '',
+    expiresAt: data.expiresAt || data.ex,
+    note: data.note || data.n || '',
+    createdAt: data.createdAt || data.ca || new Date().toISOString(),
+    status: data.status || 'active'
+  };
+}
+
 // ---- Process QR Data ----
 function processQRData(rawData) {
   let qrData;
@@ -1831,19 +1909,21 @@ function processQRData(rawData) {
     return;
   }
 
-  if (!qrData.token || !qrData.apartmentId) {
+  if (!isSmartGatePayload(qrData)) {
     showScanError('QR không hợp lệ', 'Mã QR không thuộc hệ thống SmartGate.');
     return;
   }
 
+  const incomingQr = normalizeQrPayload(qrData);
   // Check in database
   checkExpiredQRs();
   const qrs = getData(KEYS.QR_CODES);
-  const qr = qrs.find(q => q.token === qrData.token);
+  let qr = qrs.find(q => q.token === incomingQr.token);
 
   if (!qr) {
-    showScanError('QR không hợp lệ', 'Token không tồn tại trong hệ thống.');
-    return;
+    qr = incomingQr;
+    qrs.push(qr);
+    setData(KEYS.QR_CODES, qrs);
   }
 
   // Check status
@@ -1890,6 +1970,18 @@ function showScanError(title, message) {
 function showValidScan(qr) {
   currentScanToken = qr.token;
 
+  const confirms = getData(KEYS.CONFIRMATIONS);
+  const existingConfirm = confirms
+    .filter(c => c.qrToken === qr.token && ['pending', 'approved', 'rejected'].includes(c.status))
+    .sort((a, b) => new Date(b.scanTime).getTime() - new Date(a.scanTime).getTime())[0];
+
+  if (existingConfirm) {
+    currentScanConfirmId = existingConfirm.id;
+    renderScanResult(qr, existingConfirm);
+    showToast('QR nay da co yeu cau xac nhan. Dang hien trang thai hien tai.', 'info');
+    return;
+  }
+
   // Create confirmation request
   const confirmId = generateId();
   currentScanConfirmId = confirmId;
@@ -1912,9 +2004,15 @@ function showValidScan(qr) {
     status: 'pending'
   };
 
-  const confirms = getData(KEYS.CONFIRMATIONS);
   confirms.push(confirmReq);
   setData(KEYS.CONFIRMATIONS, confirms);
+
+  const qrs = getData(KEYS.QR_CODES);
+  const storedQr = qrs.find(item => item.token === qr.token);
+  if (storedQr && storedQr.status === 'active') {
+    storedQr.status = 'waitingOwner';
+    setData(KEYS.QR_CODES, qrs);
+  }
 
   renderScanResult(qr, confirmReq);
   showToast('Đã gửi yêu cầu xác nhận đến chủ nhà', 'info');
